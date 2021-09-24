@@ -57,34 +57,31 @@ def form_letter():
     pass
 
 
-# Когда не знаешь кого собрать система предлагала варианты запросов , из списка дорогих кликов или из ниш
-def suggest_category_for_search():
-    pass
-
-
 def start_program():
-    list_questions = ''
+    list_questions = ['']
     max_deep = 10
-    print('Привет, ты находишься в парсере Lead Group версии 2.0'
-          'У Вас есть возможность напрямую влиять на его работу. '
-          'Чем больше дадите обратной связи, тем лучше он будет работать'
-          'Для этого замечания и предложения фиксируйте в файле '
-          'https://docs.google.com/spreadsheets/d/19Kmt0qVzaeH2I0wBkcBJXtkrmXfvHpFpKugMadLKYVg/edit?usp=sharing ')
+    print('Привет, ты находишься в парсере Lead Group версии 2.0')
+    print('У Вас есть возможность напрямую влиять на его работу. ')
+    print('Чем больше дадите обратной связи, тем лучше он будет работать')
+    print('Для этого замечания и предложения фиксируйте в файле ')
+    print('https://docs.google.com/spreadsheets/d/19Kmt0qVzaeH2I0wBkcBJXtkrmXfvHpFpKugMadLKYVg/edit?usp=sharing ')
 
     print('ВАЖНО')
-    print('Ограничений на количество запросов и городов нет, но стоит помнить, '
-          'что время работы программы возрастает в геометрической прогрессии (запрос*город*глубину поиска)')
+    print('Ограничений на количество запросов и городов нет, но стоит помнить, ')
+    print('что время работы программы возрастает в геометрической прогрессии (запрос*город*глубину поиска)')
     print('Нажми Enter если понятно')
     input()
-    print('Введи запросы для поиска через запятую'
-          'ВАЖНО'
-          'В запросе используйте коммерческие слова '
-          '"Купить", "Цена", "Снять в аренду", "Продать" и тд'
-          'Так же используйте более узкие запросы'
-          'Например, не "юридические услуги", а "авто юрист" или "Банкротство" ')
-    while not list_questions:
+
+    print('Введи запросы для поиска через запятую')
+    print('ВАЖНО')
+    print('В запросе используйте коммерческие слова ')
+    print('"Купить", "Цена", "Снять в аренду", "Продать" и тд')
+    print('Так же используйте более узкие запросы')
+    print('Например, не "юридические услуги", а "авто юрист" или "Банкротство" ')
+
+    while not list_questions[0]:
         suggest_category_for_search()
-    list_questions = [i.strip() for i in input().split(',')]
+        list_questions = [i.strip() for i in input().split(',')]
 
     print('Введи города, через запятую')
     city_questions = [i.strip() for i in input().split(',')]
@@ -100,33 +97,33 @@ def start_program():
         deep_page = 5
         print(f'Вы неверно указали глубину поиска, установлено значение {deep_page} страниц')
 
-    search_list = generate_serch_list(list_questions, city_questions)
+    search_list = generate_search_list(list_questions, city_questions)
 
     return search_list, deep_page
 
 
 # Предложить случайную категорию
-def suggest_a_random_category():
-    random_category=[]
-    file = requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
-    file = file.content.decode('UTF-8').split()
-    print(''
-          '**********'
-          '10 случайных категорий для поиска'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          f'{str(random.choices(file))}'
-          '**********')
+def suggest_category_for_search():
+    file = requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/top_category.csv')
+    random_category = file.content.decode('UTF-8').split('\n')
+    print()
+    print('10 случайных категорий для поиска')
+    print('**********')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print(f'{random.choices(random_category)[0]}')
+    print('**********')
     print('Чтобы получить еще 10 случайных категорий нажми Enter или введи запросы для поиска через запятую')
 
-def generate_serch_list(list_questions, city_questions):
+
+def generate_search_list(list_questions, city_questions):
     list_questions, city_questions = list_questions, city_questions
     search_list = []
     for quest in list_questions:
@@ -138,10 +135,8 @@ def generate_serch_list(list_questions, city_questions):
     return search_list
 
 
-search_list, deep_page=(start_program())
-
-
-
+# search_list, deep_page = (start_program()) TODO: вкл
+# print("[+] - данные для поиска получены")  TODO: вкл
 
 
 
@@ -263,4 +258,8 @@ search_list, deep_page=(start_program())
 
 
 if __name__ == '__main__':
-    pass
+    search_list=['купить яхту Омск', 'купить яхту Новосибирск', 'купить яхту Москва', 'купить айфон Омск',
+                 'купить айфон Новосибирск', 'купить айфон Москва', 'купить телевизор Омск',
+                 'купить телевизор Новосибирск', 'купить телевизор Москва']
+
+    deep_page=3
