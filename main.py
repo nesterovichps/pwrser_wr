@@ -55,42 +55,96 @@ def send_commercial_offer():
 
 def form_letter():
     pass
+
+
 # Когда не знаешь кого собрать система предлагала варианты запросов , из списка дорогих кликов или из ниш
 def suggest_category_for_search():
     pass
 
-# и отсекал форумы и новостные сайты .
-# и дать возможность скидывать лажовые сайты и стоп-слова .
-# И в идеале хочу сделать , чтобы ещё и трафик сайта пробивал, но по этому пункту пока даже приблизительно не знаю как сделать.
+
+def start_program():
+    list_questions = ''
+    max_deep = 10
+    print('Привет, ты находишься в парсере Lead Group версии 2.0'
+          'У Вас есть возможность напрямую влиять на его работу. '
+          'Чем больше дадите обратной связи, тем лучше он будет работать'
+          'Для этого замечания и предложения фиксируйте в файле '
+          'https://docs.google.com/spreadsheets/d/19Kmt0qVzaeH2I0wBkcBJXtkrmXfvHpFpKugMadLKYVg/edit?usp=sharing ')
+
+    print('ВАЖНО')
+    print('Ограничений на количество запросов и городов нет, но стоит помнить, '
+          'что время работы программы возрастает в геометрической прогрессии (запрос*город*глубину поиска)')
+    print('Нажми Enter если понятно')
+    input()
+    print('Введи запросы для поиска через запятую'
+          'ВАЖНО'
+          'В запросе используйте коммерческие слова '
+          '"Купить", "Цена", "Снять в аренду", "Продать" и тд'
+          'Так же используйте более узкие запросы'
+          'Например, не "юридические услуги", а "авто юрист" или "Банкротство" ')
+    while not list_questions:
+        suggest_category_for_search()
+    list_questions = [i.strip() for i in input().split(',')]
+
+    print('Введи города, через запятую')
+    city_questions = [i.strip() for i in input().split(',')]
+
+    print(f'Сколько первых страниц просматриваем? максимум {max_deep} стр')
+    try:
+        deep_page = int(input())
+        if deep_page > max_deep:
+            deep_page = 5
+            print(
+                f'Вы превысили максимальную глубину поиска ({max_deep} страниц), установлено значение {deep_page} страниц')
+    except:
+        deep_page = 5
+        print(f'Вы неверно указали глубину поиска, установлено значение {deep_page} страниц')
+
+    search_list = generate_serch_list(list_questions, city_questions)
+
+    return search_list, deep_page
+
+
+# Предложить случайную категорию
+def suggest_a_random_category():
+    random_category=[]
+    file = requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
+    file = file.content.decode('UTF-8').split()
+    print(''
+          '**********'
+          '10 случайных категорий для поиска'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          f'{str(random.choices(file))}'
+          '**********')
+    print('Чтобы получить еще 10 случайных категорий нажми Enter или введи запросы для поиска через запятую')
+
+def generate_serch_list(list_questions, city_questions):
+    list_questions, city_questions = list_questions, city_questions
+    search_list = []
+    for quest in list_questions:
+        if quest:
+            for city in city_questions:
+                if city:
+                    search_list.append(f'{quest} {city}')
+
+    return search_list
+
+
+search_list, deep_page=(start_program())
 
 
 
-# def init_param():
-#     global list_questions, city_questions, deep_page
-#     max_deep = 10
-#     print('Привет, ты находишься в парсере версии 1.0')
-#
-#     print('ВАЖНО')
-#     print('Ограничений на количество запросов и городов нет')
-#     print(
-#         'Однако стоит понимать что время работы программы возрастает в геометрической прогрессии (запрос*город*глубину поиска)')
-#     print('Нажми Enter если понятно')
-#     input()
-#     print('Введи ключевые запросы, через запятую')
-#     list_questions = [i.strip() for i in input().split(',')]
-#
-#     print('Введи города, через запятую')
-#     city_questions = [i.strip() for i in input().split(',')]
-#
-#     print(f'Сколько первых страниц просматриваем? максимум {max_deep} стр')
-#     try:
-#         deep_page = int(input())
-#         if deep_page > max_deep:
-#             deep_page = 5
-#     except:
-#         deep_page = 5
-#
-#
+
+
+
 # def search_google(search_quest, deep_page, google_link, headers, list_url):
 #     search_quest, deep_page, google_link, headers, list_url = search_quest, deep_page, google_link, headers, list_url
 #     i = 0
@@ -121,14 +175,7 @@ def suggest_category_for_search():
 #     return list_url
 #
 #
-# def search_yandex(search_quest, deep_page, yandex_link, headers, list_url):
-#     pass
-#
-#
-# def parse_yandex(r, list_url):
-#     pass
-#
-#
+
 # def save_result(list_url):
 #     list_url = list_url
 #     file_number = 1
@@ -179,16 +226,7 @@ def suggest_category_for_search():
 #     return url
 #
 #
-# def generate_serch_list(list_questions, city_questions):
-#     list_questions, city_questions = list_questions, city_questions
-#     search_list = []
-#     for quest in list_questions:
-#         if quest:
-#             for city in city_questions:
-#                 if city:
-#                     search_list.append(f'{quest} {city}')
-#
-#     return search_list
+
 #
 #
 # list_url = []
@@ -218,6 +256,11 @@ def suggest_category_for_search():
 #     print('Работа окончена')
 # except:
 #     print('Упс, что то не работает')
+
+# и отсекал форумы и новостные сайты .
+# и дать возможность скидывать лажовые сайты и стоп-слова .
+# И в идеале хочу сделать , чтобы ещё и трафик сайта пробивал, но по этому пункту пока даже приблизительно не знаю как сделать.
+
 
 if __name__ == '__main__':
     pass
