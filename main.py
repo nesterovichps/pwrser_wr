@@ -20,10 +20,10 @@ class Company:
     company_dns = ''
     company_status_add = True
 
-    def __init__(self,response,search_quest,page):
-        self.response = response
-        self.search_quest = search_quest
-        self.page = page
+    def __init__(self,dns,comment,search_qustion):
+        self.company_dns = dns
+        self.company_comment = comment
+        self.search_qustion = search_qustion
 
     def get_company_name(self):
         pass
@@ -136,21 +136,26 @@ def generate_search_list(list_questions, city_questions):
 
     return search_list
 
-def parse_google(response):
+def parse_google(response,search_quest):
+
     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
     soup = bs(response.content, 'html.parser')
     soup_rk=soup.__copy__()
     for div in soup.find_all('div',class_='g'):
+        company=Company(re.match(pattern,div.a.get('href'))[0],div.a.text,search_quest)
+        # print(re.match(pattern,div.a.get('href'))[0])#url
+        # print(div.a.text)#comment
+        # print()
+        list_company.append(company)
 
-        print(re.match(pattern,div.a.get('href'))[0])#url
-        print(div.a.text)#comment
-        print()
     for div in soup_rk.find_all('div',class_='uEierd'):
-        print(re.match(pattern,div.a.get('data-pcu'))[0])
-        print(div.a.text)
-        print()
-
-
+        company = Company(re.match(pattern,div.a.get('data-pcu'))[0], div.a.text, search_quest)
+        # print(re.match(pattern,div.a.get('data-pcu'))[0])
+        # print(div.a.text)
+        # print()
+        list_company.append(company)
+    for company in list_company:
+        print(company.company_dns)
     # for link in soup.find_all('a'):
     #     print(111,link)
     #     link = re.match(pattern, str(link.get('href')))
@@ -166,6 +171,7 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'
 }
 list_company = []
+company_number=1
 search_list=['купить айфон Москва'] #todo del
 
 deep_page=1 #TODO del
@@ -189,7 +195,7 @@ try:
             response = requests.get(google_link, params=param, headers=headers)
 
             if response:
-                list_url=parse_google(response)
+                list_url=parse_google(response,search_quest)
                 print('[+] - данные со страницы получены')
                 # list_company.append(Company(response,search_quest,page))
                 print(list_url)
