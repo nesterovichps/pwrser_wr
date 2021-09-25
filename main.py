@@ -20,8 +20,10 @@ class Company:
     company_dns = ''
     company_status_add = True
 
-    def __init__(self):
-        pass
+    def __init__(self,response,search_quest,page):
+        self.response = response
+        self.search_quest = search_quest
+        self.page = page
 
     def get_company_name(self):
         pass
@@ -96,9 +98,9 @@ def start_program():
     except:
         deep_page = 5
         print(f'Вы неверно указали глубину поиска, установлено значение {deep_page} страниц')
-
+    print('формирую варианты запроса')
     search_list = generate_search_list(list_questions, city_questions)
-
+    print('[+] - запросы сформированы')
     return search_list, deep_page
 
 
@@ -134,40 +136,77 @@ def generate_search_list(list_questions, city_questions):
 
     return search_list
 
+def parse_google(response):
+    pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
+    soup = bs(response.content, 'html.parser')
+    soup_rk=soup.__copy__()
+    for div in soup.find_all('div',class_='g'):
 
-# search_list, deep_page = (start_program()) TODO: вкл
-# print("[+] - данные для поиска получены")  TODO: вкл
+        print(re.match(pattern,div.a.get('href'))[0])#url
+        print(div.a.text)#comment
+        print()
+    for div in soup_rk.find_all('div',class_='uEierd'):
+        print(re.match(pattern,div.a.get('data-pcu'))[0])
+        print(div.a.text)
+        print()
+
+
+    # for link in soup.find_all('a'):
+    #     print(111,link)
+    #     link = re.match(pattern, str(link.get('href')))
+    #     print(link)
+    #     if link:
+    #         list_url.append(link[0])
+    # return list_url
+    return 1
+
+
+google_link = 'https://www.google.com/search'
+headers = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'
+}
+list_company = []
+search_list=['купить айфон Москва'] #todo del
+
+deep_page=1 #TODO del
+
+
+try:
+    # search_list, deep_page = (start_program()) TODO: вкл
+    # print("[+] - данные для поиска получены")  TODO: вкл
+    print('[+] - Начинаю искать')
+
+    i_quest = 1
+    for search_quest in search_list:
+        print(f' {i_quest} запрос из {len(search_list)}, ожидайте')
+        print(f' Поиск запроса {search_quest}, ожидайте')
+        i_quest += 1
+        for page in range(deep_page) :
+            print(f'[+] - {page+1} страница из {deep_page}, ожидайте')
+            time.sleep(random.randint(1, 5))
+            param = {'q': search_quest,
+                     'start': page * 10}
+            response = requests.get(google_link, params=param, headers=headers)
+
+            if response:
+                list_url=parse_google(response)
+                print('[+] - данные со страницы получены')
+                # list_company.append(Company(response,search_quest,page))
+                print(list_url)
+#     list_url = search_rubbish(list_url)
+#     save_result(list_url)
+    print('Работа окончена')
+except:
+    print('Упс, что то не работает')
 
 
 
-# def search_google(search_quest, deep_page, google_link, headers, list_url):
-#     search_quest, deep_page, google_link, headers, list_url = search_quest, deep_page, google_link, headers, list_url
-#     i = 0
-#     for page in range(deep_page):
-#         print(f'поиск на странице №{i} из {deep_page}')
-#         i += 1
-#         time.sleep(random.randint(1, 4))
-#         param = {'q': search_quest,
-#                  'start': page * 10}
-#         r = requests.get(google_link, params=param, headers=headers)
-#         if r.status_code == 200:
-#             try:
-#                 parse_google(r, list_url)
-#             except:
-#                 return list_url
-#     return list_url
-#
-#
-# def parse_google(r, list_url):
-#     list_url = list_url
-#     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
-#     soup = bs(r.text, 'html.parser')
-#     soup = soup.find('div', id='search')
-#     for link in soup.find_all('a'):
-#         link = re.match(pattern, str(link.get('href')))
-#         if link:
-#             list_url.append(link[0])
-#     return list_url
+
+
+
+
+
+
 #
 #
 
@@ -224,42 +263,10 @@ def generate_search_list(list_questions, city_questions):
 
 #
 #
-# list_url = []
-# list_questions = []
-# city_questions = []
-# deep_page = 3
-# google_link = 'https://www.google.com/search'
-# yandex_link = 'https://yandex.ru/search/'
-# headers = {
-#     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'
-# }
-# try:
-#     start()
-#     print('Начинаю искать')
-#     print('формирую варианты запроса')
-#     search_list = generate_serch_list(list_questions, city_questions)
-#     i = 1
-#     for search_quest in search_list:
-#         print(f'Ищу в гугле {i} запрос из {len(search_list)}, ожидайте')
-#         print(f'Поиск запроса {search_quest}, ожидайте')
-#
-#         i += 1
-#         list_url = search_google(search_quest, deep_page, google_link, headers, list_url)
-#     # list_url=search_yandex(search_list[0], deep_page, yandex_link, headers,list_url) TODO: yandex pars doit
-#     list_url = search_rubbish(list_url)
-#     save_result(list_url)
-#     print('Работа окончена')
-# except:
-#     print('Упс, что то не работает')
+
+
 
 # и отсекал форумы и новостные сайты .
 # и дать возможность скидывать лажовые сайты и стоп-слова .
 # И в идеале хочу сделать , чтобы ещё и трафик сайта пробивал, но по этому пункту пока даже приблизительно не знаю как сделать.
 
-
-if __name__ == '__main__':
-    search_list=['купить яхту Омск', 'купить яхту Новосибирск', 'купить яхту Москва', 'купить айфон Омск',
-                 'купить айфон Новосибирск', 'купить айфон Москва', 'купить телевизор Омск',
-                 'купить телевизор Новосибирск', 'купить телевизор Москва']
-
-    deep_page=3
