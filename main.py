@@ -15,40 +15,84 @@ class Company:
     company_phone = ''
     company_comment = ''
     company_amount = ''
-    company_status_in_base = ''  # 4-база 5-недозвон 6-переговоры 7-ожидаем оплаты 8-партнерка 9-оплачено 10-закрыто нереализовано
+    company_status_in_base = 5  # 4-база 5-недозвон 6-переговоры 7-ожидаем оплаты 8-партнерка 9-оплачено 10-закрыто нереализовано
     company_date_of_creation = ''
     company_dns = ''
     company_status_add = True
+    list_for_search_contact=['partnerskaya-programma','partner','contacts','contact','about','vip','admin','boss','feedback']
+    list_ansver_response=[]
+    def __init__(self,dns,comment,search_quest):
+        global headers
+        self.company_dns=dns
+        self.check_company_status(headers)
+        if self.company_status_add:
+            self.collect_a_list_of_pages()
 
-    def __init__(self,dns,comment,search_qustion):
-        self.company_dns = dns
+            for response in self.list_ansver_response:
+                if not self.company_phone:
+                    self.get_company_phone(response)
+                if not self.company_email:
+                    self.get_company_email(response)
+            self.get_company_name(search_quest)
+            self.company_comment(comment)
+            self.get_first_lvl_domain()
+
+    def check_company_status(self,headers):
+        response=requests.get(self.company_dns,headers=headers)
+        if response:
+            self.list_ansver_response.append(response)
+            print(f'[+] - Домен  {self.company_dns} доступен')
+        else:
+            print(f'[-] - Домен  {self.company_dns} НЕ РАБОТАЕТ')
+            self.company_status_add=False
+
+    def collect_a_list_of_pages(self):
+        for page in self.list_for_search_contact:
+            try:
+                response=requests.get(f'{self.company_dns}/{page}/')
+                self.list_ansver_response.append(response)
+            except:
+                pass
+
+    def get_company_name(self,search_quest):
+        self.company_name= f'parser {search_quest}'
+
+    def get_company_email(self,response):
+        pattern="([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
+        try:
+            self.company_email=re.search(pattern,response.text)
+        except:
+            pass
+
+    def get_company_phone(self,response):
+        try:
+            i=re.search('https://wa.me/',response.text).end()
+            self.company_phone=response.text[i:i+11]
+        except:
+            pass
+        if not self.company_phone:
+            try:
+                i = re.search('https://wa.me/', response.text).end()
+                tel = response.text[i:i + 22]
+                tel = tel.replace(' ','').replace('.','').replace('/','').replace('(','').replace(')','').replace('_','').replace('-','')
+                tel=re.search(r'\d+',tel)
+                tel=tel[:11]
+                self.company_phone =tel
+            except:
+                pass
+
+    def get_company_comment(self,comment):
         self.company_comment = comment
-        self.search_qustion = search_qustion
 
-    def get_company_name(self):
-        pass
+    def get_first_lvl_domain(self):
+        url = self.company_dns.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.', '')
+        if url.count('.') > 1:
+            self.company_dns= url[url.index('.') + 1:].strip()
+        if 'xn--' in url:
+            url = idna.decode(url)
+            self.company_dns=url
 
-    def get_company_email(self):
-        pass
 
-    def get_company_phone(self):
-        pass
-
-    def get_company_comment(self):
-        pass
-
-    def get_company_amount(self):
-        pass
-
-    def get_company_date_of_creation(self):
-        pass
-
-    def get_company_dns(self):
-        pass
-
-    # проверяет активный ли сайт (домен привязан не привязан)
-    def check_company_status(self):
-        pass
 
 
 def send_commercial_offer():
@@ -136,34 +180,41 @@ def generate_search_list(list_questions, city_questions):
 
     return search_list
 
-def parse_google(response,search_quest):
+def parse_google(response,search_quest,dns_list):
 
     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
     soup = bs(response.content, 'html.parser')
     soup_rk=soup.__copy__()
     for div in soup.find_all('div',class_='g'):
-        company=Company(re.match(pattern,div.a.get('href'))[0],div.a.text,search_quest)
-        # print(re.match(pattern,div.a.get('href'))[0])#url
-        # print(div.a.text)#comment
-        # print()
-        list_company.append(company)
+        dns=re.match(pattern,div.a.get('href'))[0]
+        dns = search_rubbish(dns)
+        if dns and dns not in dns_list:
+            dns_list.append(dns)
+            company=Company(dns,div.a.text,search_quest)
+
+            list_company.append(company)
 
     for div in soup_rk.find_all('div',class_='uEierd'):
-        company = Company(re.match(pattern,div.a.get('data-pcu'))[0], div.a.text, search_quest)
-        # print(re.match(pattern,div.a.get('data-pcu'))[0])
-        # print(div.a.text)
-        # print()
-        list_company.append(company)
-    for company in list_company:
-        print(company.company_dns)
-    # for link in soup.find_all('a'):
-    #     print(111,link)
-    #     link = re.match(pattern, str(link.get('href')))
-    #     print(link)
-    #     if link:
-    #         list_url.append(link[0])
-    # return list_url
-    return 1
+        dns=re.match(pattern,div.a.get('data-pcu'))[0]
+        dns=search_rubbish(dns)
+        if dns and dns not in dns_list:
+            dns_list.append(dns)
+            company = Company(dns, div.a.text, search_quest)
+            list_company.append(company)
+
+
+
+def search_rubbish(url):
+    file=requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
+    list_exception_for_dns = file.content.decode('UTF-8').split('\n')
+    for exept in list_exception_for_dns:
+        if exept in url:
+            return  None
+
+    return url
+
+
+
 
 
 google_link = 'https://www.google.com/search'
@@ -173,7 +224,7 @@ headers = {
 list_company = []
 company_number=1
 search_list=['купить айфон Москва'] #todo del
-
+dns_list=[]
 deep_page=1 #TODO del
 
 
@@ -195,12 +246,22 @@ try:
             response = requests.get(google_link, params=param, headers=headers)
 
             if response:
-                list_url=parse_google(response,search_quest)
+                parse_google(response,search_quest,dns_list)
                 print('[+] - данные со страницы получены')
-                # list_company.append(Company(response,search_quest,page))
-                print(list_url)
-#     list_url = search_rubbish(list_url)
-#     save_result(list_url)
+
+
+
+
+
+
+
+    #TODO сохранить результат
+    #TODO формирую письмо
+    #TODO отправить кп
+
+    # for company in list_company:
+    #
+    #     save_result(list_url)
     print('Работа окончена')
 except:
     print('Упс, что то не работает')
@@ -236,43 +297,9 @@ except:
 #         file_number += 1
 #
 #
-# def search_rubbish(list_url):
-#     result = []
-#     except_list = (
-#         'blog', 'google', 'avito', 'ozon', 'yandex', 'lenta', 'tiu', 'drom.ru', 'vk.com', '2gis.ru', 'zoon.ru',
-#         'instagram')
-#     list_url = list_url
-#     flag = True
-#     for url in list_url:
-#         for ex in except_list:
-#             if ex in url:
-#                 flag = False
-#                 break
-#         if flag:
-#             url = search_first_lvl_domain(url)
-#             if url not in result:
-#                 result.append(url)
-#         else:
-#             flag = True
-#     return result
-#
-#
-# def search_first_lvl_domain(url):
-#     url = url.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.', '')
-#     if url.count('.') > 1:
-#         url = url[url.index('.') + 1:].strip()
-#     if 'xn--' in url:
-#         url = idna.decode(url)
-#     return url
-#
-#
-
-#
-#
 
 
 
 # и отсекал форумы и новостные сайты .
-# и дать возможность скидывать лажовые сайты и стоп-слова .
 # И в идеале хочу сделать , чтобы ещё и трафик сайта пробивал, но по этому пункту пока даже приблизительно не знаю как сделать.
 
