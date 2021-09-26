@@ -6,6 +6,7 @@ import csv
 import random
 import os
 import idna
+import smtplib
 
 
 # Создание модели стандартной компании
@@ -78,7 +79,6 @@ class Company:
         if not self.company_phone:
             try:
                 i = re.search('tel:', response.text).end()
-                print(i)
                 tel = response.text[i:i + 22]
                 tel = tel.replace(' ', '').replace('.', '').replace('/', '').replace('(', '').replace(')', '').replace(
                     '_', '').replace('-', '').replace('+', '').replace('"', '')
@@ -99,14 +99,6 @@ class Company:
         if 'xn--' in url:
             url = idna.decode(url)
             self.company_dns = url
-
-
-def send_commercial_offer():
-    pass
-
-
-def form_letter():
-    pass
 
 
 def start_program():
@@ -244,20 +236,103 @@ def save_result(list_company):
                 i += 1
         file_number += 1
 
+def create_email_list(list_company):
+    email_list_for_send=[]
+    for company in list_company:
+        if company.company_email:
+            email_list_for_send.append(company.company_email)
+    return email_list_for_send
+
+def mail_teamplate(mail_from,email_to,first_name_manager,last_name_manager,logo_masagerov,tel_company,tel_manager,sait_company,logo_company):
+
+    mail=f'''
+Здравствуйте, Меня зовут {last_name_manager}.
+Мы готовы поставлять Вам клиентов с гарантией. Стоимость одного заинтересованного клиента будет от 42 до 93 руб . Если контакт пустой, то стоит 0 рублей.
+
+Тестовые 3-5 клиентов, которые подтвердят свой интерес, дадим бесплатно . причем Вам даже звониь никому не нужно. Мы определим 10 посетителей с Вашего сайта, сами с ними свяжемся и передадим Вам уже подтвержденных клиентов, которые будут ждать от Вас звонка.
+
+А теперь расскажу , почему это письмо стоит Вашего внимания.
+
+Мы сделали и запатентовали продукт, который позволяет определять телефонные номера посетителей, которые заходили на ваш сайт, интересовались вашим продуктом,но в итоге ушли и заявку не оставили.
+Важно, само по себе подключение продукта, его использование или техническая поддержка стоит 0 рублей! Вы платите только за конкретный результат, в виде телефонных номеров новых потенциальных клиентов. При этом, все это не просто красивые слова- все эти условия мы фиксируем с вами в договоре. Если вы позвонили по номеру, но не дозвонились до клиента, либо клиент не заинтересован, то такие номера меняются. В видео без воды, подробно рассказано как работает технология https://www.youtube.com/watch?v=MJ3NB-Zg5i0
+
+Лучше всего о нашей работе расскажут результаты наших клиентов в цифрах https://disk.yandex.uz/i/kQQP67REEhesww
+
+Крупнейшие компании России уже являются нашими клиентами https://docs.google.com/spreadsheets/d/1f4z0zePJgpCsbsLCQl16C6NeveFn-4Jfl9ccty0QS6s/edit#gid=0
+Нам доверяет уже более 26 000 компаний по всей РФ из различных сфер https://crm.wantresult.ru/site/public-categories
+ВТБ выпустил пресс-релиз, в котором назвал Нашу технологию лучшей из 190 IT продуктов https://www.rvc.ru/press-service/media-review/rvk/146546/
+
+Министерство экономического развития, своместно с Сбербанком создало специальную платформу знаний и сервисов для бизнеса «Деловая среда». Цель этой платформы - помочь предпринимателям в более эффективном запуске и управлению бизнесом. «Деловая среда» выбрала нас официальным партнером по направлению «Маркетинг» https://dasreda.ru/services/tarif-start
+
+Сбербанк на своем официальном сайте размещает информацию о нас https://www.sberbank.ru/ru/s_m_business/franchises/detail/want-result
+
+Так же Мы являемся резидентами Сколково https://navigator.sk.ru/orn/1124137
+
+Нет ресурсов\ времени обрабатывать наши Лиды?
+
+Тоже не проблема. Наши менеджеры могут обрабатывать поток клиентов и передавать Вам уже тех клиентов, которые подтвердили интерес по телефону. Можем даже разработать небольшой скрипт , чтобы прогонять по воронке и сразу отсекать тех клиентов, которые не подошли под Ваши первичные требования.
+
+---
+С уважением к Вам и Вашему бизнесу, ведущий специалист отдела развития регионального бизнеса {first_name_manager} {last_name_manager}, Lead Group
+{logo_masagerov}
+{tel_manager}
+{tel_company}
+Сайт: {sait_company}
+"Экономить на рекламе всё равно, что остановить часы с целью экономии времени."
+(с)Томас Джефферсон
+{logo_company}
+'''
+    print('[+] Письмо сформировано')
+    return mail
+
+def connect_server(EMAIL_LOGIN,EMAIL_PASS,SMTP):
+
+    server = smtplib.SMTP_SSL(SMTP)
+    server.login(EMAIL_LOGIN,EMAIL_PASS)
+    print('[+] Подключение успешно')
+    return server
+
+def send_mail(email_letter,send_server,email_from,email_to,email_subgect):
+    email_subgect = random.choice(email_subgect)
+    header=f'''From: {email_from}
+To: {email_to}
+Subject: {email_subgect}
+    '''
+
+    email_letter=header + email_letter
+    email_letter=email_letter.encode('utf-8')
+    try:
+        send_server.sendmail(email_from, email_to, email_letter)
+        print(f'[+] Письмо на почту {email_to} отправлено' )
+    except:
+        print(f'[-] Письмо на почту {email_to} НЕ отправлено')
 
 google_link = 'https://www.google.com/search'
 headers = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36',
+    'Referer':'https://www.google.com/',
+    'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
 }
 list_company = []
 company_number = 1
-search_list = ['купить айфон Москва']  # todo del
 dns_list = []
-deep_page = 1  # TODO del
+EMAIL_LOGIN= 'leadgroup@internet.ru'
+EMAIL_PASS= 'DSB2HknauTt77ZeTGa1p'
+SMTP='smtp.mail.ru:465'
+email_from='leadgroup@internet.ru'
+email_to='leadgroup@internet.ru'
+email_subgect=['Для руководства','Для Директора']
+first_name_manager= 'Нестерович'
+last_name_manager='Петр'
+logo_masagerov=''
+tel_company= '8 995 333 60 21'
+tel_manager= 'Тел.: 8 950 333 33 43'
+sait_company= 'result55.ru'
+logo_company=''
 
 try:
-    # search_list, deep_page = (start_program()) TODO: вкл
-    # print("[+] - данные для поиска получены")  TODO: вкл
+    search_list, deep_page = (start_program())
+    print("[+] - данные для поиска получены")
     print('[+] - Начинаю искать')
 
     i_quest = 1
@@ -278,12 +353,51 @@ try:
 
     save_result(list_company)
     print('[+] - результаты сохранены')
-    # TODO формирую письмо
-    # TODO отправить кп
 
     print('Работа окончена')
 except:
     print('Упс, что то не работает')
+
+f=0
+while f!='1' or f!='2':
+    print('Хочешь отправить Коммерческое предложение по всем собранным емэйлам???')
+    print('выбери один из вариантов')
+    print('1 - да, отправить кп')
+    print('2 - нет, закончить работу программы')
+    f=input()
+
+    print( '[+] - ответ принят' if (f=='1' or f=='2') else '[-] ответ не принят, выбери из доступных вариантов')
+
+if f==1:
+    print('[+] - рассылка кп запущена')
+    print('Формирую список для емейл рассылки')
+    email_list_for_send = create_email_list(list_company)
+    if email_list_for_send:
+        print(f'[+] список рассылки сформирован. Подготовлено {len(email_list_for_send)}адресов для рассылки')
+        email_letter = mail_teamplate(email_from, email_to, first_name_manager, last_name_manager, logo_masagerov,
+                                      tel_company, tel_manager, sait_company, logo_company)
+        try:
+            print('Подключаюсь к почтовому серверу')
+            send_server = connect_server(EMAIL_LOGIN, EMAIL_PASS, SMTP)
+        except:
+            print('[-] Не удалось подключится к серверу, неверный логин и пароль от почты, завершаю работу')
+
+        print('Пробую отправить письмо из .')
+        i_send=1
+        for email_to_send in email_list_for_send:
+            print(f'Пробую отправить {i_send} из {len(email_list_for_send)} адресов ')
+            try:
+                send_mail(email_letter, send_server, email_from, email_to_send, email_subgect)
+            except:
+                print('[-] ошибка с отправкой сообщения')
+        send_server.quit()
+        print('[+] Рассылка закончена')
+
+    else:
+        print('[-] - Список емейлов пуст, завершаю работу')
+
+
+print('[+] - работа программы закончена. отличного дня.')
 
 # и отсекал форумы и новостные сайты .
 # И в идеале хочу сделать , чтобы ещё и трафик сайта пробивал, но по этому пункту пока даже приблизительно не знаю как сделать.
