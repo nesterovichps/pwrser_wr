@@ -19,11 +19,14 @@ class Company:
     company_date_of_creation = ''
     company_dns = ''
     company_status_add = True
-    list_for_search_contact=['partnerskaya-programma','partner','contacts','contact','about','vip','admin','boss','feedback']
-    list_ansver_response=[]
-    def __init__(self,dns,comment,search_quest):
+    list_for_search_contact = ['partnerskaya-programma', 'partner', 'contacts', 'contact', 'about', 'vip', 'admin',
+                               'boss', 'feedback']
+    list_ansver_response = []
+
+    def __init__(self, dns, comment, search_quest):
         global headers
-        self.company_dns=dns
+        self.list_ansver_response.clear()
+        self.company_dns = dns
         self.check_company_status(headers)
         if self.company_status_add:
             self.collect_a_list_of_pages()
@@ -34,65 +37,68 @@ class Company:
                 if not self.company_email:
                     self.get_company_email(response)
             self.get_company_name(search_quest)
-            self.company_comment(comment)
+            self.get_company_comment(comment)
             self.get_first_lvl_domain()
 
-    def check_company_status(self,headers):
-        response=requests.get(self.company_dns,headers=headers)
+    def check_company_status(self, headers):
+
+        response = requests.get(self.company_dns, headers=headers)
         if response:
             self.list_ansver_response.append(response)
             print(f'[+] - Домен  {self.company_dns} доступен')
         else:
             print(f'[-] - Домен  {self.company_dns} НЕ РАБОТАЕТ')
-            self.company_status_add=False
+            self.company_status_add = False
 
     def collect_a_list_of_pages(self):
         for page in self.list_for_search_contact:
             try:
-                response=requests.get(f'{self.company_dns}/{page}/')
-                self.list_ansver_response.append(response)
+                response = requests.get(f'{self.company_dns}/{page}/')
+                if response:
+                    self.list_ansver_response.append(response)
             except:
                 pass
 
-    def get_company_name(self,search_quest):
-        self.company_name= f'parser {search_quest}'
+    def get_company_name(self, search_quest):
+        self.company_name = f'parser {search_quest}'
 
-    def get_company_email(self,response):
-        pattern="([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
+    def get_company_email(self, response):
+        pattern = "([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
         try:
-            self.company_email=re.search(pattern,response.text)
+            self.company_email = re.search(pattern, response.text)[0]
         except:
             pass
 
-    def get_company_phone(self,response):
+    def get_company_phone(self, response):
         try:
-            i=re.search('https://wa.me/',response.text).end()
-            self.company_phone=response.text[i:i+11]
+            i = re.search('https://wa.me/', response.text).end()
+            self.company_phone = response.text[i:i + 11]
         except:
             pass
         if not self.company_phone:
             try:
-                i = re.search('https://wa.me/', response.text).end()
+                i = re.search('tel:', response.text).end()
+                print(i)
                 tel = response.text[i:i + 22]
-                tel = tel.replace(' ','').replace('.','').replace('/','').replace('(','').replace(')','').replace('_','').replace('-','')
-                tel=re.search(r'\d+',tel)
-                tel=tel[:11]
-                self.company_phone =tel
+                tel = tel.replace(' ', '').replace('.', '').replace('/', '').replace('(', '').replace(')', '').replace(
+                    '_', '').replace('-', '').replace('+', '').replace('"', '')
+                tel = re.search(r'\d+', tel)[0]
+                tel = tel[:11]
+                self.company_phone = tel
             except:
                 pass
 
-    def get_company_comment(self,comment):
+    def get_company_comment(self, comment):
         self.company_comment = comment
 
     def get_first_lvl_domain(self):
-        url = self.company_dns.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.', '')
+        url = self.company_dns.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.',
+                                                                                                               '')
         if url.count('.') > 1:
-            self.company_dns= url[url.index('.') + 1:].strip()
+            self.company_dns = url[url.index('.') + 1:].strip()
         if 'xn--' in url:
             url = idna.decode(url)
-            self.company_dns=url
-
-
+            self.company_dns = url
 
 
 def send_commercial_offer():
@@ -180,41 +186,63 @@ def generate_search_list(list_questions, city_questions):
 
     return search_list
 
-def parse_google(response,search_quest,dns_list):
 
+def parse_google(response, search_quest, dns_list):
     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
     soup = bs(response.content, 'html.parser')
-    soup_rk=soup.__copy__()
-    for div in soup.find_all('div',class_='g'):
-        dns=re.match(pattern,div.a.get('href'))[0]
+    soup_rk = soup.__copy__()
+    for div in soup.find_all('div', class_='g'):
+        dns = re.match(pattern, div.a.get('href'))[0]
         dns = search_rubbish(dns)
         if dns and dns not in dns_list:
             dns_list.append(dns)
-            company=Company(dns,div.a.text,search_quest)
+            company = Company(dns, div.a.text, search_quest)
 
             list_company.append(company)
 
-    for div in soup_rk.find_all('div',class_='uEierd'):
-        dns=re.match(pattern,div.a.get('data-pcu'))[0]
-        dns=search_rubbish(dns)
+    for div in soup_rk.find_all('div', class_='uEierd'):
+        dns = re.match(pattern, div.a.get('data-pcu'))[0]
+        dns = search_rubbish(dns)
         if dns and dns not in dns_list:
             dns_list.append(dns)
             company = Company(dns, div.a.text, search_quest)
             list_company.append(company)
 
 
-
 def search_rubbish(url):
-    file=requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
+    file = requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
     list_exception_for_dns = file.content.decode('UTF-8').split('\n')
     for exept in list_exception_for_dns:
         if exept in url:
-            return  None
+            return None
 
     return url
 
 
+def save_result(list_company):
+    file_number = 1
+    try:
+        for i in range(1, 100):
+            os.remove(f'result{i}.csv')
+    except:
+        pass
 
+    while list_company:
+        with open(f'result{file_number}.csv', 'w', encoding='UTF-8', newline='') as csvfile:
+            filewriter = csv.writer(csvfile, delimiter=',',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            i = 0
+            while i < 200 and list_company:
+                company = list_company.pop()
+                filewriter.writerow([company.company_name,
+                                     company.company_email,
+                                     company.company_phone,
+                                     company.company_comment,
+                                     '',
+                                     '',
+                                     company.company_dns])
+                i += 1
+        file_number += 1
 
 
 google_link = 'https://www.google.com/search'
@@ -222,11 +250,10 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'
 }
 list_company = []
-company_number=1
-search_list=['купить айфон Москва'] #todo del
-dns_list=[]
-deep_page=1 #TODO del
-
+company_number = 1
+search_list = ['купить айфон Москва']  # todo del
+dns_list = []
+deep_page = 1  # TODO del
 
 try:
     # search_list, deep_page = (start_program()) TODO: вкл
@@ -238,68 +265,25 @@ try:
         print(f' {i_quest} запрос из {len(search_list)}, ожидайте')
         print(f' Поиск запроса {search_quest}, ожидайте')
         i_quest += 1
-        for page in range(deep_page) :
-            print(f'[+] - {page+1} страница из {deep_page}, ожидайте')
+        for page in range(deep_page):
+            print(f'[+] - {page + 1} страница из {deep_page}, ожидайте')
             time.sleep(random.randint(1, 5))
             param = {'q': search_quest,
                      'start': page * 10}
             response = requests.get(google_link, params=param, headers=headers)
 
             if response:
-                parse_google(response,search_quest,dns_list)
+                parse_google(response, search_quest, dns_list)
                 print('[+] - данные со страницы получены')
 
+    save_result(list_company)
+    print('[+] - результаты сохранены')
+    # TODO формирую письмо
+    # TODO отправить кп
 
-
-
-
-
-
-    #TODO сохранить результат
-    #TODO формирую письмо
-    #TODO отправить кп
-
-    # for company in list_company:
-    #
-    #     save_result(list_url)
     print('Работа окончена')
 except:
     print('Упс, что то не работает')
 
-
-
-
-
-
-
-
-
-#
-#
-
-# def save_result(list_url):
-#     list_url = list_url
-#     file_number = 1
-#     try:
-#         for i in range(1, 100):
-#             os.remove(f'result{i}.csv')
-#     except:
-#         pass
-#
-#     while list_url:
-#         with open(f'result{file_number}.csv', 'w', encoding='UTF-8', newline='') as csvfile:
-#             filewriter = csv.writer(csvfile, delimiter=',',
-#                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-#             i = 0
-#             while i < 200 and list_url:
-#                 filewriter.writerow(['parser', '', '', '', '', '', list_url.pop(0)])
-#                 i += 1
-#         file_number += 1
-#
-#
-
-
-
 # и отсекал форумы и новостные сайты .
 # И в идеале хочу сделать , чтобы ещё и трафик сайта пробивал, но по этому пункту пока даже приблизительно не знаю как сделать.
-
