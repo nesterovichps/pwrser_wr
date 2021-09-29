@@ -52,10 +52,12 @@ class Company:
 
     def collect_a_list_of_pages(self):
         for page in self.list_for_search_contact:
+            time.sleep(random.randint(1, 2))
 
-            response = requests.get(f'{self.company_dns}/{page}/')
+            response = requests.get(f'{self.company_dns}{page}/')
             if response:
                 self.list_answer_response.append(response)
+
 
 
     def get_company_name(self, search_quest):
@@ -63,27 +65,38 @@ class Company:
 
     def get_company_email(self, response):
         pattern = "([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
-        email_company=re.search(pattern, response.text)[0]
+        email_company=re.search(pattern, response.text)
         if email_company:
-            self.company_email = email_company
+            self.company_email = email_company[0]
+            print('[+] - email найден')
 
     def get_company_phone(self, response):
 
-        i = re.search('https://wa.me/', response.text).end()
-        tel = response.text[i:i + 11]
-        if tel:
-            self.company_phone = tel
+        i = re.search('https://wa.me/', response.text)
+        if i:
+
+            i=int(i.end())
+            tel = response.text[i:i + 11]
+            if tel:
+                self.company_phone = tel
+                print('[+] - тел. найден')
 
         if not self.company_phone:
 
-            i = re.search('tel:', response.text).end()
-            tel = response.text[i:i + 22]
-            tel = tel.replace(' ', '').replace('.', '').replace('/', '').replace('(', '').replace(')', '').replace(
-                '_', '').replace('-', '').replace('+', '').replace('"', '')
-            tel = re.search(r'\d+', tel)[0]
-            tel = tel[:11]
-            if tel:
-                self.company_phone = tel
+            i = re.search('tel:', response.text)
+            if i:
+                i = int(i.end())
+                tel = response.text[i:i + 22]
+                if tel:
+                    tel = tel.replace(' ', '').replace('.', '').replace('/', '').replace('(', '').replace(')', '').replace(
+                        '_', '').replace('-', '').replace('+', '').replace('"', '')
+                    tel = re.search(r'\d+', tel)
+                    if tel:
+                        tel=tel[0]
+                        tel = tel[:11]
+                        if tel:
+                            self.company_phone = tel
+                            print('[+] - тел. найден')
 
 
     def get_company_comment(self, comment):
