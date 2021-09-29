@@ -7,6 +7,7 @@ import random
 import os
 import idna
 import smtplib
+from guppy import hpy
 
 
 # Создание модели стандартной компании
@@ -188,8 +189,9 @@ def parse_google(response, search_quest, dns_list):
         dns = search_rubbish(dns)
         if dns and dns not in dns_list:
             dns_list.append(dns)
+            print(h.heap())
             company = Company(dns, div.a.text, search_quest)
-
+            company.list_ansver_response.clear()
             list_company.append(company)
 
     for div in soup_rk.find_all('div', class_='uEierd'):
@@ -236,16 +238,18 @@ def save_result(list_company):
                 i += 1
         file_number += 1
 
+
 def create_email_list(list_company):
-    email_list_for_send=[]
+    email_list_for_send = []
     for company in list_company:
         if company.company_email:
             email_list_for_send.append(company.company_email)
     return email_list_for_send
 
-def mail_teamplate(mail_from,email_to,first_name_manager,last_name_manager,logo_masagerov,tel_company,tel_manager,sait_company,logo_company):
 
-    mail=f'''
+def mail_teamplate(first_name_manager, last_name_manager, logo_masagerov, tel_company, tel_manager, sait_company,
+                   logo_company):
+    mail = f'''
 Здравствуйте, Меня зовут {last_name_manager}.
 Мы готовы поставлять Вам клиентов с гарантией. Стоимость одного заинтересованного клиента будет от 42 до 93 руб . Если контакт пустой, то стоит 0 рублей.
 
@@ -285,50 +289,53 @@ def mail_teamplate(mail_from,email_to,first_name_manager,last_name_manager,logo_
     print('[+] Письмо сформировано')
     return mail
 
-def connect_server(EMAIL_LOGIN,EMAIL_PASS,SMTP):
 
+def connect_server(EMAIL_LOGIN, EMAIL_PASS, SMTP):
     server = smtplib.SMTP_SSL(SMTP)
-    server.login(EMAIL_LOGIN,EMAIL_PASS)
+    server.login(EMAIL_LOGIN, EMAIL_PASS)
     print('[+] Подключение успешно')
     return server
 
-def send_mail(email_letter,send_server,email_from,email_to,email_subgect):
+
+def send_mail(email_letter, send_server, email_from, email_to, email_subgect):
     email_subgect = random.choice(email_subgect)
-    header=f'''From: {email_from}
+    header = f'''From: {email_from}
 To: {email_to}
 Subject: {email_subgect}
     '''
 
-    email_letter=header + email_letter
-    email_letter=email_letter.encode('utf-8')
+    email_letter = header + email_letter
+    email_letter = email_letter.encode('utf-8')
     try:
         send_server.sendmail(email_from, email_to, email_letter)
-        print(f'[+] Письмо на почту {email_to} отправлено' )
+        print(f'[+] Письмо на почту {email_to} отправлено')
     except:
         print(f'[-] Письмо на почту {email_to} НЕ отправлено')
+
 
 google_link = 'https://www.google.com/search'
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36',
-    'Referer':'https://www.google.com/',
+    'Referer': 'https://www.google.com/',
     'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
 }
 list_company = []
 company_number = 1
 dns_list = []
-EMAIL_LOGIN= 'leadgroup@internet.ru'
-EMAIL_PASS= 'DSB2HknauTt77ZeTGa1p'
-SMTP='smtp.mail.ru:465'
-email_from='leadgroup@internet.ru'
-email_to='leadgroup@internet.ru'
-email_subgect=['Для руководства','Для Директора']
-first_name_manager= 'Нестерович'
-last_name_manager='Петр'
-logo_masagerov=''
-tel_company= '8 995 333 60 21'
-tel_manager= 'Тел.: 8 950 333 33 43'
-sait_company= 'result55.ru'
-logo_company=''
+EMAIL_LOGIN = 'leadgroup@internet.ru'
+EMAIL_PASS = 'DSB2HknauTt77ZeTGa1p'
+SMTP = 'smtp.mail.ru:465'
+email_from = 'leadgroup@internet.ru'
+email_to = 'leadgroup@internet.ru'
+email_subgect = ['Для руководства', 'Для Директора']
+first_name_manager = 'Нестерович'
+last_name_manager = 'Петр'
+logo_masagerov = ''
+tel_company = '8 995 333 60 21'
+tel_manager = 'Тел.: 8 950 333 33 43'
+sait_company = 'result55.ru'
+logo_company = ''
+h = hpy()
 
 try:
     search_list, deep_page = (start_program())
@@ -342,6 +349,7 @@ try:
         i_quest += 1
         for page in range(deep_page):
             print(f'[+] - {page + 1} страница из {deep_page}, ожидайте')
+
             time.sleep(random.randint(1, 5))
             param = {'q': search_quest,
                      'start': page * 10}
@@ -358,23 +366,23 @@ try:
 except:
     print('Упс, что то не работает')
 
-f=0
-while f!='1' or f!='2':
+f = 0
+while f != '1' and f != '2':
     print('Хочешь отправить Коммерческое предложение по всем собранным емэйлам???')
     print('выбери один из вариантов')
     print('1 - да, отправить кп')
     print('2 - нет, закончить работу программы')
-    f=input()
+    f = input()
 
-    print( '[+] - ответ принят' if (f=='1' or f=='2') else '[-] ответ не принят, выбери из доступных вариантов')
+    print('[+] - ответ принят' if (f == '1' or f == '2') else '[-] ответ не принят, выбери из доступных вариантов')
 
-if f==1:
+if f == 1:
     print('[+] - рассылка кп запущена')
     print('Формирую список для емейл рассылки')
     email_list_for_send = create_email_list(list_company)
     if email_list_for_send:
         print(f'[+] список рассылки сформирован. Подготовлено {len(email_list_for_send)}адресов для рассылки')
-        email_letter = mail_teamplate(email_from, email_to, first_name_manager, last_name_manager, logo_masagerov,
+        email_letter = mail_teamplate(first_name_manager, last_name_manager, logo_masagerov,
                                       tel_company, tel_manager, sait_company, logo_company)
         try:
             print('Подключаюсь к почтовому серверу')
@@ -383,7 +391,7 @@ if f==1:
             print('[-] Не удалось подключится к серверу, неверный логин и пароль от почты, завершаю работу')
 
         print('Пробую отправить письмо из .')
-        i_send=1
+        i_send = 1
         for email_to_send in email_list_for_send:
             print(f'Пробую отправить {i_send} из {len(email_list_for_send)} адресов ')
             try:
@@ -395,8 +403,6 @@ if f==1:
 
     else:
         print('[-] - Список емейлов пуст, завершаю работу')
-
-
 print('[+] - работа программы закончена. отличного дня.')
 
 # и отсекал форумы и новостные сайты .
