@@ -7,7 +7,7 @@ import random
 import os
 import idna
 import smtplib
-from guppy import hpy
+from threading import *
 
 
 # Создание модели стандартной компании
@@ -39,10 +39,11 @@ class Company:
             self.get_company_name(search_quest)
             self.get_company_comment(comment)
             self.get_first_lvl_domain()
+            print('[+] - данные со страницы получены')
 
     def check_company_status(self, headers):
 
-        response = requests.get(self.company_dns, headers=headers)
+        response = requests.get(self.company_dns, headers=headers ,verify=False )
         if response:
             self.list_answer_response.append(response)
             print(f'[+] - Домен  {self.company_dns} доступен')
@@ -54,7 +55,7 @@ class Company:
         for page in self.list_for_search_contact:
             time.sleep(random.randint(1, 2))
 
-            response = requests.get(f'{self.company_dns}{page}/')
+            response = requests.get(f'{self.company_dns}{page}/',headers=headers ,verify=False)
             if response:
                 self.list_answer_response.append(response)
 
@@ -68,7 +69,7 @@ class Company:
         email_company=re.search(pattern, response.text)
         if email_company:
             self.company_email = email_company[0]
-            print('[+] - email найден')
+            print(f'   [+] - email. найден {self.company_dns}')
 
     def get_company_phone(self, response):
 
@@ -79,7 +80,7 @@ class Company:
             tel = response.text[i:i + 11]
             if tel:
                 self.company_phone = tel
-                print('[+] - тел. найден')
+                print(f'   [+] - тел. найден {self.company_dns}')
 
         if not self.company_phone:
 
@@ -96,7 +97,7 @@ class Company:
                         tel = tel[:11]
                         if tel:
                             self.company_phone = tel
-                            print('[+] - тел. найден')
+                            print(f'   [+] - тел. найден {self.company_dns}')
 
 
     def get_company_comment(self, comment):
@@ -192,8 +193,10 @@ def parse_google(response, search_quest, dns_list):
     soup = bs(response.content, 'html.parser')
 
     for div in soup.find_all('div', class_='g'):
-        dns = re.match(pattern, div.a.get('href'))[0]
-        dns = search_rubbish(dns)
+        dns = re.match(pattern, div.a.get('href'))
+        if dns:
+
+            dns = search_rubbish(dns[0])
 
         if dns and dns not in dns_list:
             dns_list.append(dns)
@@ -345,13 +348,15 @@ tel_company = '8 995 333 60 21'
 tel_manager = 'Тел.: 8 950 333 33 43'
 url_company = 'result55.ru'
 logo_company = ''
-
-
+potok=10
+potok_list=[]
 search_list, deep_page = (start_program())
 print("[+] - данные для поиска получены")
 print('[+] - Начинаю искать')
 
 i_quest = 1
+
+
 for search_quest in search_list:
     print(f' {i_quest} запрос из {len(search_list)}, ожидайте')
     print(f' Поиск запроса {search_quest}, ожидайте')
@@ -365,8 +370,19 @@ for search_quest in search_list:
         response = requests.get(google_link, params=param, headers=headers)
 
         if response:
-            parse_google(response, search_quest, dns_list)
-            print('[+] - данные со страницы получены')
+            for _ in range(potok):
+                pt = Thread(target=parse_google, args=(response, search_quest, dns_list,))
+                potok_list.append(pt)
+
+            for pt in potok_list:
+                if pt:
+                    pt.start()
+            # parse_google(response, search_quest, dns_list)
+            for pt in potok_list:
+                if pt:
+                    pt.join()
+            potok_list.clear()
+
 
 save_result(list_company)
 print('[+] - результаты сохранены')
