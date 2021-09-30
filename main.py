@@ -10,6 +10,7 @@ import smtplib
 from threading import *
 
 
+
 # Создание модели стандартной компании
 class Company:
     company_name = ''
@@ -19,8 +20,7 @@ class Company:
     company_status_in_base = 5  # 4-база 5-недозвон 6-переговоры 7-ожидаем оплаты 8-партнерка 9-оплачено 10-закрыто нереализовано
     company_dns = ''
     company_status_add = True
-    list_for_search_contact = ['partnerskaya-programma', 'partner', 'contacts', 'contact', 'about', 'vip', 'admin',
-                               'boss', 'feedback']
+    list_for_search_contact = ['contacts','contact', 'about','feedback', 'partner', 'kontakts', 'kontakt' , 'vip', ]
     list_answer_response = []
 
     def __init__(self, dns, comment, search_quest):
@@ -189,6 +189,7 @@ def generate_search_list(list_questions, city_questions):
 
 
 def parse_google(response, search_quest, dns_list):
+    global list_company
     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
     soup = bs(response.content, 'html.parser')
 
@@ -331,7 +332,7 @@ headers = {
     'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
 }
 
-
+# добавить список доменов с защитой
 list_company = []
 company_number = 1
 dns_list = []
@@ -353,7 +354,7 @@ potok_list=[]
 search_list, deep_page = (start_program())
 print("[+] - данные для поиска получены")
 print('[+] - Начинаю искать')
-
+requests.packages.urllib3.disable_warnings()
 i_quest = 1
 
 
@@ -375,12 +376,15 @@ for search_quest in search_list:
                 potok_list.append(pt)
 
             for pt in potok_list:
-                if pt:
+                try:
                     pt.start()
+                except ConnectionError:
+                    pass
+
             # parse_google(response, search_quest, dns_list)
             for pt in potok_list:
                 if pt:
-                    pt.join()
+                    pt.join(100)
             potok_list.clear()
 
 
@@ -399,7 +403,7 @@ while f != '1' and f != '2':
 
     print('[+] - ответ принят' if (f == '1' or f == '2') else '[-] ответ не принят, выбери из доступных вариантов')
 
-if f == 1:
+if f == '1':
     print('[+] - рассылка кп запущена')
     print('Формирую список для емейл рассылки')
     email_list_for_send = create_email_list(list_company)
