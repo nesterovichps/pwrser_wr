@@ -23,64 +23,67 @@ class Company:
     list_for_search_contact = ['contacts','contact', 'about','feedback', 'partner', 'kontakts', 'kontakt' , 'vip', ]
     list_answer_response = []
 
-    def __init__(self, dns, comment, search_quest):
-        global headers
-        self.list_answer_response.clear()
-        self.company_dns = dns
-        self.check_company_status(headers)
-        if self.company_status_add:
-            self.collect_a_list_of_pages()
+    def __init__(self,):
+        pass
+        # global headers
+        # self.list_answer_response.clear()
+        # self.company_dns = dns
+        # self.check_company_status(headers)
+        # if self.company_status_add:
+        #     self.collect_a_list_of_pages()
+        #
+        #     for response in self.list_answer_response:
+        #         if not self.company_phone:
+        #             self.get_company_phone(response)
+        #         if not self.company_email:
+        #             self.get_company_email(response)
+        #     self.get_company_name(search_quest)
+        #     self.get_company_comment(comment)
+        #     self.get_first_lvl_domain()
+        #     print('[+] - данные со страницы получены')
 
-            for response in self.list_answer_response:
-                if not self.company_phone:
-                    self.get_company_phone(response)
-                if not self.company_email:
-                    self.get_company_email(response)
-            self.get_company_name(search_quest)
-            self.get_company_comment(comment)
-            self.get_first_lvl_domain()
-            print('[+] - данные со страницы получены')
-
-    def check_company_status(self, headers):
-
-        response = requests.get(self.company_dns, headers=headers ,verify=False )
+    def check_company_status(self, headers,dns):
+        list_answer_response=[]
+        response = requests.get(dns, headers=headers ,verify=False )
         if response:
-            self.list_answer_response.append(response)
-            print(f'[+] - Домен  {self.company_dns} доступен')
+            list_answer_response.append(response)
+            print(f'[+] - Домен  {dns} доступен')
+            return list_answer_response,self.company_status_add
         else:
-            print(f'[-] - Домен  {self.company_dns} НЕ РАБОТАЕТ')
-            self.company_status_add = False
+            print(f'[-] - Домен  {dns} НЕ РАБОТАЕТ')
+            return list_answer_response, False
 
-    def collect_a_list_of_pages(self):
-        for page in self.list_for_search_contact:
-            time.sleep(random.randint(1, 2))
+    def collect_a_list_of_pages(self,dns,headers,page):
 
-            response = requests.get(f'{self.company_dns}{page}/',headers=headers ,verify=False)
-            if response:
-                self.list_answer_response.append(response)
+        time.sleep(random.randint(1, 2))
+        response = requests.get(f'{dns}{page}/',headers=headers ,verify=False)
+        return response
+
+
 
 
 
     def get_company_name(self, search_quest):
-        self.company_name = f'parser {search_quest}'
+        return f'parser {search_quest}'
 
-    def get_company_email(self, response):
+    def get_company_email(self, response,dns):
         pattern = "([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
         email_company=re.search(pattern, response.text)
         if email_company:
-            self.company_email = email_company[0]
-            print(f'   [+] - email. найден {self.company_dns}')
+            print(f'   [+] - email. найден {dns}')
+            return email_company[0]
+        return None
 
-    def get_company_phone(self, response):
+    def get_company_phone(self, response,dns):
+        if not self.company_phone:
+            i = re.search('https://wa.me/', response.text)
+            if i:
 
-        i = re.search('https://wa.me/', response.text)
-        if i:
-
-            i=int(i.end())
-            tel = response.text[i:i + 11]
-            if tel:
-                self.company_phone = tel
-                print(f'   [+] - тел. найден {self.company_dns}')
+                i=int(i.end())
+                tel = response.text[i:i + 11]
+                if tel:
+                    print(f'   [+] - тел. найден {dns}')
+                    return  tel
 
         if not self.company_phone:
 
@@ -96,22 +99,23 @@ class Company:
                         tel=tel[0]
                         tel = tel[:11]
                         if tel:
-                            self.company_phone = tel
-                            print(f'   [+] - тел. найден {self.company_dns}')
-
+                            print(f'   [+] - тел. найден {dns}')
+                            return tel
+        return None
 
     def get_company_comment(self, comment):
-        self.company_comment = comment
+        return comment.replace(',',' ').replace('|',' ')
 
-    def get_first_lvl_domain(self):
-        url = self.company_dns.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.',
+    def get_first_lvl_domain(self,dns):
+        url = dns.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.',
                                                                                                                '')
+        result_url=dns
         if url.count('.') > 1:
-            self.company_dns = url[url.index('.') + 1:].strip()
+            result_url = url[url.index('.') + 1:].strip()
         if 'xn--' in url:
             url = idna.decode(url)
-            self.company_dns = url
-
+            result_url = url
+        return result_url
 
 def start_program():
     list_questions = ['']
@@ -189,7 +193,7 @@ def generate_search_list(list_questions, city_questions):
 
 
 def parse_google(response, search_quest, dns_list):
-    global list_company
+
     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
     soup = bs(response.content, 'html.parser')
 
@@ -201,9 +205,18 @@ def parse_google(response, search_quest, dns_list):
 
         if dns and dns not in dns_list:
             dns_list.append(dns)
+            pt = Thread(target=add_potok, args=(dns, div.a.text, search_quest,list_company,))
+            potok_list.append(pt)
 
-            company = Company(dns, div.a.text, search_quest)
-            list_company.append(company)
+            try:
+                pt.start()
+
+                # list_company.append(company)
+            except:
+                pass
+
+        # company = Company(dns, div.a.text, search_quest)
+
 
     soup = bs(response.content, 'html.parser')
     for div in soup.find_all('div', class_='uEierd'):
@@ -211,9 +224,21 @@ def parse_google(response, search_quest, dns_list):
         dns = search_rubbish(dns)
         if dns and dns not in dns_list:
             dns_list.append(dns)
-            company = Company(dns, div.a.text, search_quest)
-            list_company.append(company)
+            pt = Thread(target=add_potok, args=(dns, div.a.text, search_quest,list_company,))
+            potok_list.append(pt)
 
+            try:
+                pt.start()
+                # list_company.append(company)
+            except:
+                pass
+
+            # company = Company(dns, div.a.text, search_quest)
+
+    for pt in potok_list:
+        if pt:
+            pt.join(100)
+    potok_list.clear()
 
 def search_rubbish(url):
     file = requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
@@ -223,6 +248,41 @@ def search_rubbish(url):
             return None
 
     return url
+
+def add_potok(dns, comment, search_quest,list_company):
+    global headers
+    # print(comment)
+    # print(search_quest)
+    company=Company()
+    list_answer_response=[]
+    company.company_dns = dns
+
+
+    list_answer_response,company.company_status_add=company.check_company_status(headers,dns)
+
+
+    if company.company_status_add:
+        for page in company.list_for_search_contact:
+            response=company.collect_a_list_of_pages(dns,headers,page)
+            if response:
+                list_answer_response.append(response)
+
+
+        for response in list_answer_response:
+            if not company.company_phone:
+                company.company_phone = company.get_company_phone(response,dns)
+            if not company.company_email:
+               company.company_email =  company.get_company_email(response,dns)
+        company.company_name = company.get_company_name(search_quest)
+        company.company_comment = company.get_company_comment(comment)
+        company.company_dns = company.get_first_lvl_domain(dns)
+        print('[+] - данные со страницы получены')
+        list_company.append(company)
+
+
+
+
+
 
 
 def save_result(list_company):
@@ -239,14 +299,16 @@ def save_result(list_company):
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
             i = 0
             while i < 200 and list_company:
-                company = list_company.pop()
-                filewriter.writerow([company.company_name,
-                                     company.company_email,
-                                     company.company_phone,
-                                     company.company_comment,
-                                     '',
-                                     '',
-                                     company.company_dns])
+                company = list_company[-1]
+                list_company.pop()
+                if company.company_status_add:
+                    filewriter.writerow([company.company_name,
+                                         company.company_email,
+                                         company.company_phone,
+                                         company.company_comment,
+                                         '',
+                                         '',
+                                         company.company_dns])
                 i += 1
         file_number += 1
 
@@ -371,23 +433,11 @@ for search_quest in search_list:
         response = requests.get(google_link, params=param, headers=headers)
 
         if response:
-            for _ in range(potok):
-                pt = Thread(target=parse_google, args=(response, search_quest, dns_list,))
-                potok_list.append(pt)
 
-            for pt in potok_list:
-                try:
-                    pt.start()
-                except ConnectionError:
-                    pass
+            parse_google(response, search_quest, dns_list)
 
-            # parse_google(response, search_quest, dns_list)
-            for pt in potok_list:
-                if pt:
-                    pt.join(100)
-            potok_list.clear()
-
-
+print(list_company)
+list_company_for_send=list_company[:]
 save_result(list_company)
 print('[+] - результаты сохранены')
 
@@ -406,7 +456,8 @@ while f != '1' and f != '2':
 if f == '1':
     print('[+] - рассылка кп запущена')
     print('Формирую список для емейл рассылки')
-    email_list_for_send = create_email_list(list_company)
+
+    email_list_for_send = create_email_list(list_company_for_send)
     if email_list_for_send:
         print(f'[+] список рассылки сформирован. Подготовлено {len(email_list_for_send)}адресов для рассылки')
         email_letter = mail_teamplate(first_name_manager, last_name_manager, logo_massager,
@@ -414,18 +465,19 @@ if f == '1':
         try:
             print('Подключаюсь к почтовому серверу')
             send_server = connect_server(EMAIL_LOGIN, EMAIL_PASS, SMTP)
+            print('Пробую отправить письмо из .')
+            i_send = 1
+            for email_to_send in email_list_for_send:
+                print(f'Пробую отправить {i_send} из {len(email_list_for_send)} адресов ')
+                try:
+                    send_mail(email_letter, send_server, email_from, email_to_send, email_subject)
+                except:
+                    print('[-] ошибка с отправкой сообщения')
+            send_server.quit()
         except:
             print('[-] Не удалось подключится к серверу, неверный логин и пароль от почты, завершаю работу')
 
-        print('Пробую отправить письмо из .')
-        i_send = 1
-        for email_to_send in email_list_for_send:
-            print(f'Пробую отправить {i_send} из {len(email_list_for_send)} адресов ')
-            try:
-                send_mail(email_letter, send_server, email_from, email_to_send, email_subject)
-            except:
-                print('[-] ошибка с отправкой сообщения')
-        send_server.quit()
+
         print('[+] Рассылка закончена')
 
     else:
