@@ -10,7 +10,6 @@ import smtplib
 from threading import *
 
 
-
 # Создание модели стандартной компании
 class Company:
     company_name = ''
@@ -20,10 +19,10 @@ class Company:
     company_status_in_base = 5  # 4-база 5-недозвон 6-переговоры 7-ожидаем оплаты 8-партнерка 9-оплачено 10-закрыто нереализовано
     company_dns = ''
     company_status_add = True
-    list_for_search_contact = ['contacts','contact', 'about','feedback', 'partner', 'kontakts', 'kontakt' , 'vip', ]
+    list_for_search_contact = ['contacts', 'contact', 'about', 'feedback', 'partner', 'kontakts', 'kontakt', 'vip', ]
     list_answer_response = []
 
-    def __init__(self,):
+    def __init__(self, ):
         pass
         # global headers
         # self.list_answer_response.clear()
@@ -42,48 +41,49 @@ class Company:
         #     self.get_first_lvl_domain()
         #     print('[+] - данные со страницы получены')
 
-    def check_company_status(self, headers,dns):
-        list_answer_response=[]
-        response = requests.get(dns, headers=headers ,verify=False )
-        if response:
-            list_answer_response.append(response)
-            print(f'[+] - Домен  {dns} доступен')
-            return list_answer_response,self.company_status_add
-        else:
+    def check_company_status(self, headers, dns):
+        list_answer_response = []
+        try:
+            response = requests.get(dns, headers=headers, verify=False)
+            if response:
+                list_answer_response.append(response)
+                print(f'[+] - Домен  {dns} доступен')
+                return list_answer_response, self.company_status_add
+            else:
+                print(f'[-] - Домен  {dns} НЕ РАБОТАЕТ')
+                return list_answer_response, False
+        except:
             print(f'[-] - Домен  {dns} НЕ РАБОТАЕТ')
             return list_answer_response, False
 
-    def collect_a_list_of_pages(self,dns,headers,page):
+    def collect_a_list_of_pages(self, dns, headers, page):
 
         time.sleep(random.randint(1, 2))
-        response = requests.get(f'{dns}{page}/',headers=headers ,verify=False)
+        response = requests.get(f'{dns}{page}/', headers=headers, verify=False)
         return response
-
-
-
-
 
     def get_company_name(self, search_quest):
         return f'parser {search_quest}'
 
-    def get_company_email(self, response,dns):
-        pattern = "([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
-        email_company=re.search(pattern, response.text)
+    def get_company_email(self, response, dns):
+        # pattern = "([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
+        pattern = r"([\d\w_\.-]{2,15})@([\d\w_\.-]{2,15})\.([\w]{2,8})"
+        email_company = re.search(pattern, response.text)
         if email_company:
             print(f'   [+] - email. найден {dns}')
             return email_company[0]
         return None
 
-    def get_company_phone(self, response,dns):
+    def get_company_phone(self, response, dns):
         if not self.company_phone:
             i = re.search('https://wa.me/', response.text)
             if i:
 
-                i=int(i.end())
+                i = int(i.end())
                 tel = response.text[i:i + 11]
                 if tel:
                     print(f'   [+] - тел. найден {dns}')
-                    return  tel
+                    return tel
 
         if not self.company_phone:
 
@@ -92,11 +92,12 @@ class Company:
                 i = int(i.end())
                 tel = response.text[i:i + 22]
                 if tel:
-                    tel = tel.replace(' ', '').replace('.', '').replace('/', '').replace('(', '').replace(')', '').replace(
+                    tel = tel.replace(' ', '').replace('.', '').replace('/', '').replace('(', '').replace(')',
+                                                                                                          '').replace(
                         '_', '').replace('-', '').replace('+', '').replace('"', '')
                     tel = re.search(r'\d+', tel)
                     if tel:
-                        tel=tel[0]
+                        tel = tel[0]
                         tel = tel[:11]
                         if tel:
                             print(f'   [+] - тел. найден {dns}')
@@ -104,18 +105,19 @@ class Company:
         return None
 
     def get_company_comment(self, comment):
-        return comment.replace(',',' ').replace('|',' ')
+        return comment.replace(',', ' ').replace('|', ' ')
 
-    def get_first_lvl_domain(self,dns):
+    def get_first_lvl_domain(self, dns):
         url = dns.strip().replace('http://', '').replace('https://', '').replace('/', '').replace('www.',
-                                                                                                               '')
-        result_url=dns
+                                                                                                  '')
+        result_url=url
         if url.count('.') > 1:
             result_url = url[url.index('.') + 1:].strip()
         if 'xn--' in url:
             url = idna.decode(url)
             result_url = url
         return result_url
+
 
 def start_program():
     list_questions = ['']
@@ -151,7 +153,8 @@ def start_program():
     deep_page = int(input())
     if deep_page > max_deep:
         deep_page = 5
-        print(f'Вы превысили максимальную глубину поиска ({max_deep} страниц), установлено значение {deep_page} страниц')
+        print(
+            f'Вы превысили максимальную глубину поиска ({max_deep} страниц), установлено значение {deep_page} страниц')
 
     print('формирую варианты запроса')
     search_list = generate_search_list(list_questions, city_questions)
@@ -181,7 +184,6 @@ def suggest_category_for_search():
 
 
 def generate_search_list(list_questions, city_questions):
-
     search_list = []
     for quest in list_questions:
         if quest:
@@ -193,52 +195,39 @@ def generate_search_list(list_questions, city_questions):
 
 
 def parse_google(response, search_quest, dns_list):
-
     pattern = 'http(s){0,1}:\/\/[A-zaz0-9\.-]+\/'
+
     soup = bs(response.content, 'html.parser')
 
     for div in soup.find_all('div', class_='g'):
         dns = re.match(pattern, div.a.get('href'))
         if dns:
-
             dns = search_rubbish(dns[0])
 
         if dns and dns not in dns_list:
             dns_list.append(dns)
-            pt = Thread(target=add_potok, args=(dns, div.a.text, search_quest,list_company,))
+            pt = Thread(target=add_potok, args=(dns, div.a.text, search_quest, list_company,))
             potok_list.append(pt)
 
-            try:
-                pt.start()
-
-                # list_company.append(company)
-            except:
-                pass
-
-        # company = Company(dns, div.a.text, search_quest)
-
+            pt.start()
 
     soup = bs(response.content, 'html.parser')
     for div in soup.find_all('div', class_='uEierd'):
-        dns = re.match(pattern, div.a.get('data-pcu'))[0]
-        dns = search_rubbish(dns)
-        if dns and dns not in dns_list:
-            dns_list.append(dns)
-            pt = Thread(target=add_potok, args=(dns, div.a.text, search_quest,list_company,))
-            potok_list.append(pt)
+        dns = re.match(pattern, div.a.get('data-pcu'))
+        if dns:
 
-            try:
+            dns = search_rubbish(dns[0])
+            if dns and dns not in dns_list:
+                dns_list.append(dns)
+                pt = Thread(target=add_potok, args=(dns, div.a.text, search_quest, list_company,))
+                potok_list.append(pt)
                 pt.start()
-                # list_company.append(company)
-            except:
-                pass
-
-            # company = Company(dns, div.a.text, search_quest)
-
+    time.sleep(10)
     for pt in potok_list:
         if pt:
-            pt.join(100)
+            pt.join(40)
     potok_list.clear()
+
 
 def search_rubbish(url):
     file = requests.get('https://raw.githubusercontent.com/nesterovichps/pwrser_wr/main/words_of_exclusion.csv')
@@ -249,40 +238,33 @@ def search_rubbish(url):
 
     return url
 
-def add_potok(dns, comment, search_quest,list_company):
+
+def add_potok(dns, comment, search_quest, list_company):
     global headers
     # print(comment)
     # print(search_quest)
-    company=Company()
-    list_answer_response=[]
+    company = Company()
+    list_answer_response = []
     company.company_dns = dns
 
-
-    list_answer_response,company.company_status_add=company.check_company_status(headers,dns)
-
+    list_answer_response, company.company_status_add = company.check_company_status(headers, dns)
 
     if company.company_status_add:
         for page in company.list_for_search_contact:
-            response=company.collect_a_list_of_pages(dns,headers,page)
+            response = company.collect_a_list_of_pages(dns, headers, page)
             if response:
                 list_answer_response.append(response)
 
-
         for response in list_answer_response:
             if not company.company_phone:
-                company.company_phone = company.get_company_phone(response,dns)
+                company.company_phone = company.get_company_phone(response, dns)
             if not company.company_email:
-               company.company_email =  company.get_company_email(response,dns)
+                company.company_email = company.get_company_email(response, dns)
         company.company_name = company.get_company_name(search_quest)
         company.company_comment = company.get_company_comment(comment)
         company.company_dns = company.get_first_lvl_domain(dns)
         print('[+] - данные со страницы получены')
         list_company.append(company)
-
-
-
-
-
 
 
 def save_result(list_company):
@@ -297,7 +279,7 @@ def save_result(list_company):
         with open(f'result{file_number}.csv', 'w', encoding='UTF-8', newline='') as csvfile:
             filewriter = csv.writer(csvfile, delimiter=',',
                                     quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            i = 0
+            i = 1
             while i < 200 and list_company:
                 company = list_company[-1]
                 list_company.pop()
@@ -411,14 +393,13 @@ tel_company = '8 995 333 60 21'
 tel_manager = 'Тел.: 8 950 333 33 43'
 url_company = 'result55.ru'
 logo_company = ''
-potok=10
-potok_list=[]
+potok = 10
+potok_list = []
 search_list, deep_page = (start_program())
 print("[+] - данные для поиска получены")
 print('[+] - Начинаю искать')
 requests.packages.urllib3.disable_warnings()
 i_quest = 1
-
 
 for search_quest in search_list:
     print(f' {i_quest} запрос из {len(search_list)}, ожидайте')
@@ -433,11 +414,10 @@ for search_quest in search_list:
         response = requests.get(google_link, params=param, headers=headers)
 
         if response:
-
             parse_google(response, search_quest, dns_list)
 
-print(list_company)
-list_company_for_send=list_company[:]
+
+list_company_for_send = list_company[:]
 save_result(list_company)
 print('[+] - результаты сохранены')
 
@@ -469,6 +449,7 @@ if f == '1':
             i_send = 1
             for email_to_send in email_list_for_send:
                 print(f'Пробую отправить {i_send} из {len(email_list_for_send)} адресов ')
+                i_send+=1
                 try:
                     send_mail(email_letter, send_server, email_from, email_to_send, email_subject)
                 except:
@@ -476,7 +457,6 @@ if f == '1':
             send_server.quit()
         except:
             print('[-] Не удалось подключится к серверу, неверный логин и пароль от почты, завершаю работу')
-
 
         print('[+] Рассылка закончена')
 
