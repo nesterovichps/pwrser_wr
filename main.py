@@ -69,7 +69,14 @@ class Company:
         # pattern = "([A-z0-9_.-]{1,})@([A-z0-9_.-]{1,}).([A-z]{2,8})"
         pattern = r"([\d\w_\.-]{2,15})@([\d\w_\.-]{2,15})\.([\w]{2,8})"
         email_company = re.search(pattern, response.text)
+        list_exclusion_email=['Rating@Mail.ru',
+                              'example',
+                              'а','б','в','г','д','е','ё','ж','я','и','й','к','л','м','н',
+                              'о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
         if email_company:
+            for el in list_exclusion_email:
+                if el in email_company[0]:
+                    return None
             print(f'   [+] - email. найден {dns}')
             return email_company[0]
         return None
